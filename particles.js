@@ -1381,8 +1381,6 @@ var pJS = function(tag_id, params){
     pJS.fn.canvasPaint();
     pJS.fn.particlesCreate();
     pJS.fn.vendors.densityAutoParticles();
-    console.log(pJS.particles.array)
-
   };
 
 
