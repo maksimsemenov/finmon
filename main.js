@@ -315,6 +315,6 @@ const configSecurity = {
 particlesJS('laundering', config)
 particlesJS('fraud', config2)
 particlesJS('customer', config)
-particlesJS('risk', config)
+insiderJS('insider')
 particlesJS('trade', config)
 securityJS('cyber',  configSecurity)

@@ -20,52 +20,41 @@ var iJS = function(tag_id, params){
     },
     particles: {
       number: {
-        value: 400,
+        value: 50,
         density: {
-          enable: true,
-          value_area: 800
+          enable: false,
+          value_area: 12
         }
       },
       color: {
-        value: '#fff'
-      },
-      shape: {
-        type: 'circle',
+        value: '#000',
+        infected: '#D0011B'
       },
       opacity: {
-        value: 1,
+        value: 0.5,
         random: false,
         anim: {
           enable: false,
-          speed: 2,
+          speed: 0.3,
           opacity_min: 0,
           sync: false
         }
       },
       size: {
-        value: 20,
-        random: false,
-        anim: {
-          enable: false,
-          speed: 20,
-          size_min: 0,
-          sync: false
-        }
+        value: 2,
+        random: true,
       },
       line_linked: {
         enable: true,
-        distance: 100,
-        color: '#fff',
-        opacity: 1,
+        distance: 50,
+        color: "#000000",
+        opacity: 0.1,
         width: 1
       },
       move: {
         enable: true,
-        speed: 2,
-        direction: 'none',
-        random: false,
-        straight: false,
-        out_mode: 'out',
+        speed: 0.2,
+        out_mode: 'bounce',
         bounce: false,
         attract: {
           enable: false,
@@ -73,7 +62,17 @@ var iJS = function(tag_id, params){
           rotateY: 3000
         }
       },
-      array: []
+      array: [],
+      infected: {
+        radius: 4,
+        maxAmount: 10,
+        probability: 0.999,
+        connections: {
+          maxAmount: 10,
+          step: 0.01
+        },
+        array: []
+      }
     },
     fn: {
       interact: {},
@@ -92,20 +91,15 @@ var iJS = function(tag_id, params){
 
   iJS.tmp.obj = {
     size_value: iJS.particles.size.value,
-    size_anim_speed: iJS.particles.size.anim.speed,
     move_speed: iJS.particles.move.speed,
     line_linked_distance: iJS.particles.line_linked.distance,
     line_linked_width: iJS.particles.line_linked.width,
-    mode_grab_distance: iJS.interactivity.modes.grab.distance,
-    mode_bubble_distance: iJS.interactivity.modes.bubble.distance,
-    mode_bubble_size: iJS.interactivity.modes.bubble.size,
-    mode_repulse_distance: iJS.interactivity.modes.repulse.distance
   };
 
 
   iJS.fn.retinaInit = function(){
 
-    if(iJS.retina_detect && window.devicePixelRatio > 1){
+    if(window.devicePixelRatio > 1){
       iJS.canvas.pxratio = window.devicePixelRatio;
       iJS.tmp.retina = true;
     }
@@ -118,18 +112,11 @@ var iJS = function(tag_id, params){
     iJS.canvas.h = iJS.canvas.el.offsetHeight * iJS.canvas.pxratio;
 
     iJS.particles.size.value = iJS.tmp.obj.size_value * iJS.canvas.pxratio;
-    iJS.particles.size.anim.speed = iJS.tmp.obj.size_anim_speed * iJS.canvas.pxratio;
     iJS.particles.move.speed = iJS.tmp.obj.move_speed * iJS.canvas.pxratio;
     iJS.particles.line_linked.distance = iJS.tmp.obj.line_linked_distance * iJS.canvas.pxratio;
-    iJS.interactivity.modes.grab.distance = iJS.tmp.obj.mode_grab_distance * iJS.canvas.pxratio;
-    iJS.interactivity.modes.bubble.distance = iJS.tmp.obj.mode_bubble_distance * iJS.canvas.pxratio;
     iJS.particles.line_linked.width = iJS.tmp.obj.line_linked_width * iJS.canvas.pxratio;
-    iJS.interactivity.modes.bubble.size = iJS.tmp.obj.mode_bubble_size * iJS.canvas.pxratio;
-    iJS.interactivity.modes.repulse.distance = iJS.tmp.obj.mode_repulse_distance * iJS.canvas.pxratio;
 
   };
-
-
 
   /* ---------- iJS functions - canvas ------------ */
 
@@ -138,43 +125,9 @@ var iJS = function(tag_id, params){
   };
 
   iJS.fn.canvasSize = function(){
-
     iJS.canvas.el.width = iJS.canvas.w;
     iJS.canvas.el.height = iJS.canvas.h;
-
-    if(iJS && iJS.interactivity.events.resize){
-
-      window.addEventListener('resize', function(){
-
-          iJS.canvas.w = iJS.canvas.el.offsetWidth;
-          iJS.canvas.h = iJS.canvas.el.offsetHeight;
-
-          /* resize canvas */
-          if(iJS.tmp.retina){
-            iJS.canvas.w *= iJS.canvas.pxratio;
-            iJS.canvas.h *= iJS.canvas.pxratio;
-          }
-
-          iJS.canvas.el.width = iJS.canvas.w;
-          iJS.canvas.el.height = iJS.canvas.h;
-
-          /* repaint canvas on anim disabled */
-          if(!iJS.particles.move.enable){
-            iJS.fn.particlesEmpty();
-            iJS.fn.particlesCreate();
-            iJS.fn.particlesDraw();
-            iJS.fn.vendors.densityAutoParticles();
-          }
-
-        /* density particles enabled */
-        iJS.fn.vendors.densityAutoParticles();
-
-      });
-
-    }
-
   };
-
 
   iJS.fn.canvasPaint = function(){
     iJS.canvas.ctx.fillRect(0, 0, iJS.canvas.w, iJS.canvas.h);
@@ -191,13 +144,6 @@ var iJS = function(tag_id, params){
 
     /* size */
     this.radius = (iJS.particles.size.random ? Math.random() : 1) * iJS.particles.size.value;
-    if(iJS.particles.size.anim.enable){
-      this.size_status = false;
-      this.vs = iJS.particles.size.anim.speed / 100;
-      if(!iJS.particles.size.anim.sync){
-        this.vs = this.vs * Math.random();
-      }
-    }
 
     /* position */
     this.x = position ? position.x : Math.random() * iJS.canvas.w;
@@ -262,99 +208,18 @@ var iJS = function(tag_id, params){
     }
 
     /* animation - velocity for speed */
-    var velbase = {}
-    switch(iJS.particles.move.direction){
-      case 'top':
-        velbase = { x:0, y:-1 };
-      break;
-      case 'top-right':
-        velbase = { x:0.5, y:-0.5 };
-      break;
-      case 'right':
-        velbase = { x:1, y:-0 };
-      break;
-      case 'bottom-right':
-        velbase = { x:0.5, y:0.5 };
-      break;
-      case 'bottom':
-        velbase = { x:0, y:1 };
-      break;
-      case 'bottom-left':
-        velbase = { x:-0.5, y:1 };
-      break;
-      case 'left':
-        velbase = { x:-1, y:0 };
-      break;
-      case 'top-left':
-        velbase = { x:-0.5, y:-0.5 };
-      break;
-      default:
-        velbase = { x:0, y:0 };
-      break;
-    }
-
-    if(iJS.particles.move.straight){
-      this.vx = velbase.x;
-      this.vy = velbase.y;
-      if(iJS.particles.move.random){
-        this.vx = this.vx * (Math.random());
-        this.vy = this.vy * (Math.random());
-      }
-    }else{
-      this.vx = velbase.x + Math.random()-0.5;
-      this.vy = velbase.y + Math.random()-0.5;
-    }
-
-    // var theta = 2.0 * Math.PI * Math.random();
-    // this.vx = Math.cos(theta);
-    // this.vy = Math.sin(theta);
+    this.vx = Math.random()-0.5;
+    this.vy = Math.random()-0.5;
 
     this.vx_i = this.vx;
     this.vy_i = this.vy;
-
-
-
-    /* if shape is image */
-
-    var shape_type = iJS.particles.shape.type;
-    if(typeof(shape_type) == 'object'){
-      if(shape_type instanceof Array){
-        var shape_selected = shape_type[Math.floor(Math.random() * shape_type.length)];
-        this.shape = shape_selected;
-      }
-    }else{
-      this.shape = shape_type;
-    }
-
-    if(this.shape == 'image'){
-      var sh = iJS.particles.shape;
-      this.img = {
-        src: sh.image.src,
-        ratio: sh.image.width / sh.image.height
-      }
-      if(!this.img.ratio) this.img.ratio = 1;
-      if(iJS.tmp.img_type == 'svg' && iJS.tmp.source_svg != undefined){
-        iJS.fn.vendors.createSvgImg(this);
-        if(iJS.tmp.pushing){
-          this.img.loaded = false;
-        }
-      }
-    }
-
-
-
   };
 
 
   iJS.fn.particle.prototype.draw = function() {
 
-    var p = this;
-
-    if(p.radius_bubble != undefined){
-      var radius = p.radius_bubble;
-    }else{
-      var radius = p.radius;
-    }
+    var p = this,
+        radius = p.radius;
 
     if(p.opacity_bubble != undefined){
       var opacity = p.opacity_bubble;
@@ -365,84 +230,18 @@ var iJS = function(tag_id, params){
     if(p.color.rgb){
       var color_value = 'rgba('+p.color.rgb.r+','+p.color.rgb.g+','+p.color.rgb.b+','+opacity+')';
     }else{
-      var color_value = 'hsla('+p.color.hsl.h+','+p.color.hsl.s+'%,'+p.color.hsl.l+'%,'+opacity+')';
+      var color_value = 'hsla('+p.color.hsl.h+','+p.color.hsl.s+'%,'+p.color.hsl.l+'%,'+ 1 +')';
+    }
+    if (p.infected) {
+      var redColor = hexToRgb('#D0011B')
+      var color_value = 'rgba('+redColor.r+','+redColor.g+','+redColor.b+','+ opacity +')';
     }
 
     iJS.canvas.ctx.fillStyle = color_value;
     iJS.canvas.ctx.beginPath();
-
-    switch(p.shape){
-
-      case 'circle':
-        iJS.canvas.ctx.arc(p.x, p.y, radius, 0, Math.PI * 2, false);
-      break;
-
-      case 'edge':
-        iJS.canvas.ctx.rect(p.x-radius, p.y-radius, radius*2, radius*2);
-      break;
-
-      case 'triangle':
-        iJS.fn.vendors.drawShape(iJS.canvas.ctx, p.x-radius, p.y+radius / 1.66, radius*2, 3, 2);
-      break;
-
-      case 'polygon':
-        iJS.fn.vendors.drawShape(
-          iJS.canvas.ctx,
-          p.x - radius / (iJS.particles.shape.polygon.nb_sides/3.5), // startX
-          p.y - radius / (2.66/3.5), // startY
-          radius*2.66 / (iJS.particles.shape.polygon.nb_sides/3), // sideLength
-          iJS.particles.shape.polygon.nb_sides, // sideCountNumerator
-          1 // sideCountDenominator
-        );
-      break;
-
-      case 'star':
-        iJS.fn.vendors.drawShape(
-          iJS.canvas.ctx,
-          p.x - radius*2 / (iJS.particles.shape.polygon.nb_sides/4), // startX
-          p.y - radius / (2*2.66/3.5), // startY
-          radius*2*2.66 / (iJS.particles.shape.polygon.nb_sides/3), // sideLength
-          iJS.particles.shape.polygon.nb_sides, // sideCountNumerator
-          2 // sideCountDenominator
-        );
-      break;
-
-      case 'image':
-
-        function draw(){
-          iJS.canvas.ctx.drawImage(
-            img_obj,
-            p.x-radius,
-            p.y-radius,
-            radius*2,
-            radius*2 / p.img.ratio
-          );
-        }
-
-        if(iJS.tmp.img_type == 'svg'){
-          var img_obj = p.img.obj;
-        }else{
-          var img_obj = iJS.tmp.img_obj;
-        }
-
-        if(img_obj){
-          draw();
-        }
-
-      break;
-
-    }
-
+    iJS.canvas.ctx.arc(p.x, p.y, radius, 0, Math.PI * 2, false);
     iJS.canvas.ctx.closePath();
-
-    if(iJS.particles.shape.stroke.width > 0){
-      iJS.canvas.ctx.strokeStyle = iJS.particles.shape.stroke.color;
-      iJS.canvas.ctx.lineWidth = iJS.particles.shape.stroke.width;
-      iJS.canvas.ctx.stroke();
-    }
-
     iJS.canvas.ctx.fill();
-
   };
 
 
@@ -459,13 +258,17 @@ var iJS = function(tag_id, params){
       /* the particle */
       var p = iJS.particles.array[i];
 
-      // var d = ( dx = iJS.interactivity.mouse.click_pos_x - p.x ) * dx + ( dy = iJS.interactivity.mouse.click_pos_y - p.y ) * dy;
-      // var f = -BANG_SIZE / d;
-      // if ( d < BANG_SIZE ) {
-      //     var t = Math.atan2( dy, dx );
-      //     p.vx = f * Math.cos(t);
-      //     p.vy = f * Math.sin(t);
-      // }
+      if (iJS.particles.infected.array.length < iJS.particles.infected.maxAmount && !p.infected && !p.healed) {
+        if (Math.ceil(Math.random() - iJS.particles.infected.probability)) {
+          iJS.particles.infected.array.push(p)
+          p.infected = true
+          p.infectTime = Date.now()
+          p.maxConnections = iJS.particles.infected.connections.maxAmount
+          // p.radius = iJS.particles.infected.radius
+          p.infectAge = 0
+          p.opacity = 1
+        }
+      }
 
       /* move the particle */
       if(iJS.particles.move.enable){
@@ -475,27 +278,14 @@ var iJS = function(tag_id, params){
       }
 
       /* change opacity status */
-      if(iJS.particles.opacity.anim.enable) {
-        if(p.opacity_status == true) {
-          if(p.opacity >= iJS.particles.opacity.value) p.opacity_status = false;
-          p.opacity += p.vo;
-        }else {
-          if(p.opacity <= iJS.particles.opacity.anim.opacity_min) p.opacity_status = true;
-          p.opacity -= p.vo;
-        }
-        if(p.opacity < 0) p.opacity = 0;
+      if(p.infected) {
+        p.opacity -= 0.003;
       }
-
-      /* change size */
-      if(iJS.particles.size.anim.enable){
-        if(p.size_status == true){
-          if(p.radius >= iJS.particles.size.value) p.size_status = false;
-          p.radius += p.vs;
-        }else{
-          if(p.radius <= iJS.particles.size.anim.size_min) p.size_status = true;
-          p.radius -= p.vs;
+      if(p.healed) {
+        p.opacity *= 1.1;
+        if (p.opacity >= iJS.particles.opacity.value) {
+          p.healed = false
         }
-        if(p.radius < 0) p.radius = 0;
       }
 
       /* change particle position if it is out of canvas */
@@ -542,21 +332,13 @@ var iJS = function(tag_id, params){
         break;
       }
 
-      /* events */
-      if(isInArray('grab', iJS.interactivity.events.onhover.mode)){
-        iJS.fn.modes.grabParticle(p);
-      }
-
-      if(isInArray('bubble', iJS.interactivity.events.onhover.mode) || isInArray('bubble', iJS.interactivity.events.onclick.mode)){
-        iJS.fn.modes.bubbleParticle(p);
-      }
-
-      if(isInArray('repulse', iJS.interactivity.events.onhover.mode) || isInArray('repulse', iJS.interactivity.events.onclick.mode)){
-        iJS.fn.modes.repulseParticle(p);
-      }
 
       /* interaction auto between particles */
       if(iJS.particles.line_linked.enable || iJS.particles.move.attract.enable){
+        if (p.infected) {
+          p.connections = p.maxConnections
+        }
+
         for(var j = i + 1; j < iJS.particles.array.length; j++){
           var p2 = iJS.particles.array[j];
 
@@ -571,16 +353,23 @@ var iJS = function(tag_id, params){
           }
 
           /* bounce particles */
-          if(iJS.particles.move.bounce){
-            iJS.fn.interact.bounceParticles(p,p2);
-          }
-
+          // if(p.infected){
+          //   iJS.fn.interact.bounceParticles(p,p2);
+          // }
         }
       }
 
-
+      /* handle infected particle */
+      if (p.infected) {
+        if (p.opacity <= 0) {
+          var pInfIndex = iJS.particles.infected.array.indexOf(p)
+          iJS.particles.infected.array.splice(pInfIndex, 1)
+          p.infected = false
+          p.healed = true
+          p.opacity = 0.001
+        }
+      }
     }
-
   };
 
   iJS.fn.particlesDraw = function(){
@@ -596,7 +385,6 @@ var iJS = function(tag_id, params){
       var p = iJS.particles.array[i];
       p.draw();
     }
-
   };
 
   iJS.fn.particlesEmpty = function(){
@@ -608,9 +396,6 @@ var iJS = function(tag_id, params){
     /* init all */
     cancelRequestAnimFrame(iJS.fn.checkAnimFrame);
     cancelRequestAnimFrame(iJS.fn.drawAnimFrame);
-    iJS.tmp.source_svg = undefined;
-    iJS.tmp.img_obj = undefined;
-    iJS.tmp.count_svg = 0;
     iJS.fn.particlesEmpty();
     iJS.fn.canvasClear();
 
@@ -630,13 +415,17 @@ var iJS = function(tag_id, params){
 
     /* draw a line between p1 and p2 if the distance between them is under the config distance */
     if(dist <= iJS.particles.line_linked.distance){
-
       var opacity_line = iJS.particles.line_linked.opacity - (dist / (1/iJS.particles.line_linked.opacity)) / iJS.particles.line_linked.distance;
-
+      if (p1.infected || p2.infected) {
+        opacity_line = Math.min(p1.opacity/10, p2.opacity/10, opacity_line);
+      }
+      if (p1.healed || p2.healed) {
+        opacity_line = Math.min(p1.opacity/10, p2.opacity/10, opacity_line)
+      }
       if(opacity_line > 0){
-
         /* style */
         var color_line = iJS.particles.line_linked.color_rgb_line;
+        if (p1.infected || p2.infected) { color_line = hexToRgb(iJS.particles.color.infected)}
         iJS.canvas.ctx.strokeStyle = 'rgba('+color_line.r+','+color_line.g+','+color_line.b+','+opacity_line+')';
         iJS.canvas.ctx.lineWidth = iJS.particles.line_linked.width;
         //iJS.canvas.ctx.lineCap = 'round'; /* performance issue */
@@ -647,11 +436,8 @@ var iJS = function(tag_id, params){
         iJS.canvas.ctx.lineTo(p2.x, p2.y);
         iJS.canvas.ctx.stroke();
         iJS.canvas.ctx.closePath();
-
       }
-
     }
-
   };
 
 
@@ -672,7 +458,6 @@ var iJS = function(tag_id, params){
 
       p2.vx += ax;
       p2.vy += ay;
-
     }
   }
 
@@ -681,7 +466,7 @@ var iJS = function(tag_id, params){
     var dx = p1.x - p2.x,
         dy = p1.y - p2.y,
         dist = Math.sqrt(dx*dx + dy*dy),
-        dist_p = p1.radius+p2.radius;
+        dist_p = p1.radius * (10) + p2.radius;
 
     if(dist <= dist_p){
       p1.vx = -p1.vx;
@@ -692,6 +477,41 @@ var iJS = function(tag_id, params){
     }
 
   }
+
+  iJS.fn.modes.pushParticles = function(nb, pos){
+
+    iJS.tmp.pushing = true;
+
+    for(var i = 0; i < nb; i++){
+      iJS.particles.array.push(
+        new iJS.fn.particle(
+          iJS.particles.color,
+          iJS.particles.opacity.value,
+          {
+            'x': pos ? pos.pos_x : Math.random() * iJS.canvas.w,
+            'y': pos ? pos.pos_y : Math.random() * iJS.canvas.h
+          }
+        )
+      )
+      if(i == nb-1){
+        if(!iJS.particles.move.enable){
+          iJS.fn.particlesDraw();
+        }
+        iJS.tmp.pushing = false;
+      }
+    }
+
+  };
+
+
+  iJS.fn.modes.removeParticles = function(nb){
+
+    iJS.particles.array.splice(0, nb);
+    if(!iJS.particles.move.enable){
+      iJS.fn.particlesDraw();
+    }
+
+  };
 
   /* ---------- iJS functions - vendors ------------ */
 

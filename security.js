@@ -234,12 +234,8 @@ var secJS = function(tag_id, params){
         secJS.fn.vendors.densityAutoParticles();
 
       });
-
     }
-
   };
-
-
   secJS.fn.canvasPaint = function(){
     secJS.canvas.ctx.fillRect(0, 0, secJS.canvas.w, secJS.canvas.h);
   };
@@ -271,7 +267,6 @@ var secJS = function(tag_id, params){
     this.orbitStartAngle = Math.random() * 2
     this.x = position ? position.x : secJS.canvas.center.x + Math.cos(Math.PI * this.orbitStartAngle) * this.orbitStartRadius;
     this.y = position ? position.y : secJS.canvas.center.x + Math.sin(Math.PI * this.orbitStartAngle) * this.orbitStartRadius;
-    console.log(secJS.canvas.basicRadius, this.x, this.y, this.orbit)
 
     /* check position  - into the canvas */
     if(this.x > secJS.canvas.w - this.radius*2) this.x = this.x - this.radius;
@@ -440,7 +435,7 @@ var secJS = function(tag_id, params){
 
   secJS.fn.interact.linkParticles = function(p1, p2){
 
-    var c = p1.countur === p2.countur ? 0.6 : 1.2,
+    var c = p1.countur === p2.countur ? 0.6 : 1.1,
         dx = p1.x - p2.x,
         dy = p1.y - p2.y,
         dist = Math.sqrt(dx*dx + dy*dy) * c;
